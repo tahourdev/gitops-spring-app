@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: spring-app-db
-  namespace: default  # Adjust namespace as needed
+  namespace: default
 spec:
   serviceName: spring-app-db
   replicas: 1
@@ -20,34 +20,34 @@ spec:
         command:
         - sh
         - -c
-        - "mkdir -p /var/lib/postgresql/pgdata && chown 999:999 /var/lib/postgresql/pgdata"
+        - "rm -rf /var/lib/postgresql/pgdata/* && mkdir -p /var/lib/postgresql/pgdata && chown 999:999 /var/lib/postgresql/pgdata"
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql
       containers:
       - name: db
-        image: postgres:16  # Pinned version for stability
+        image: postgres:16
         ports:
         - containerPort: 5432
         env:
         - name: POSTGRES_PASSWORD
-          value: "123"  # Use Secret in production
+          value: "123"
         - name: POSTGRES_USER
           value: "postgres"
         - name: POSTGRES_DB
           value: "product"
+        - name: PGDATA
+          value: /var/lib/postgresql/pgdata
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql
-        command: ["postgres"]
-        args: ["-c", "data_directory=/var/lib/postgresql/pgdata"]
         resources:
           requests:
             memory: "256Mi"
             cpu: "250m"
           limits:
             memory: "512Mi"
-            cpu: "500m"  # Ensure sufficient resources for GKE nodes
+            cpu: "500m"
         readinessProbe:
           exec:
             command: ["pg_isready", "-U", "postgres", "-d", "/var/lib/postgresql/pgdata"]
@@ -69,8 +69,8 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 1Gi  # Adjust for GCP Persistent Disk
-      storageClassName: standard  # Required for GKE GCE PD CSI driver
+          storage: 1Gi
+      storageClassName: standard
 ---
 apiVersion: v1
 kind: Service
