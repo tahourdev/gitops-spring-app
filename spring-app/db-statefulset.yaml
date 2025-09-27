@@ -14,17 +14,32 @@ spec:
       labels:
         app: spring-app-db
     spec:
+      securityContext:
+        fsGroup: 999  # Helps with group permissions on the volume
+      initContainers:
+        - name: fix-permissions
+          image: busybox:latest
+          command: ["sh", "-c", "chown -R 999:999 /tmp"]
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /tmp
       containers:
         - name: db
           image: postgres:latest
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
           ports:
             - containerPort: 5432
           envFrom:
             - secretRef:
                 name: db-secret
+          env:
+            - name: PGDATA
+              value: /pgdata/pgdata  # Use subdir to avoid lost+found issues
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /pgdata
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "postgres"]
