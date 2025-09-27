@@ -14,9 +14,19 @@ spec:
       labels:
         app: spring-app-db
     spec:
+      initContainers:
+      - name: init-db
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - "mkdir -p /var/lib/postgresql/data && chown 999:999 /var/lib/postgresql/data"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
       containers:
       - name: db
-        image: postgres:16  # Pinned version for stability (latest was unstable)
+        image: postgres:16  # Pinned version for stability
         ports:
         - containerPort: 5432
         env:
@@ -35,11 +45,11 @@ spec:
             cpu: "250m"
           limits:
             memory: "512Mi"
-            cpu: "500m"  # Added to ensure startup resources
+            cpu: "500m"  # Ensure sufficient resources for GKE nodes
         readinessProbe:
           exec:
             command: ["pg_isready", "-U", "postgres"]
-          initialDelaySeconds: 60  # Increased for init time
+          initialDelaySeconds: 60  # Increased for GKE init time
           periodSeconds: 20
           timeoutSeconds: 5
           failureThreshold: 5
@@ -57,8 +67,8 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 1Gi  # Adjust as needed; use GCP Persistent Disk
-      storageClassName: standard  # Explicitly set for GKE
+          storage: 1Gi  # Adjust for GCP Persistent Disk
+      storageClassName: standard  # Required for GKE GCE PD CSI driver
 ---
 apiVersion: v1
 kind: Service
