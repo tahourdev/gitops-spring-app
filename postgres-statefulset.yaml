@@ -48,6 +48,10 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        securityContext:
+          runAsUser: 999  # Ensure the container runs as postgres user
+          runAsGroup: 999
+          fsGroup: 999    # Apply group ownership to the volume
         readinessProbe:
           exec:
             command: ["pg_isready", "-U", "postgres", "-d", "/var/lib/postgresql/pgdata"]
