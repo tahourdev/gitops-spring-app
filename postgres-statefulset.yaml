@@ -20,10 +20,10 @@ spec:
         command:
         - sh
         - -c
-        - "mkdir -p /var/lib/postgresql/data && chown 999:999 /var/lib/postgresql/data"
+        - "mkdir -p /var/lib/postgresql/pgdata && chown 999:999 /var/lib/postgresql/pgdata"
         volumeMounts:
         - name: postgres-data
-          mountPath: /var/lib/postgresql/data
+          mountPath: /var/lib/postgresql
       containers:
       - name: db
         image: postgres:16  # Pinned version for stability
@@ -38,7 +38,9 @@ spec:
           value: "product"
         volumeMounts:
         - name: postgres-data
-          mountPath: /var/lib/postgresql/data
+          mountPath: /var/lib/postgresql
+        command: ["postgres"]
+        args: ["-c", "data_directory=/var/lib/postgresql/pgdata"]
         resources:
           requests:
             memory: "256Mi"
@@ -48,14 +50,14 @@ spec:
             cpu: "500m"  # Ensure sufficient resources for GKE nodes
         readinessProbe:
           exec:
-            command: ["pg_isready", "-U", "postgres"]
-          initialDelaySeconds: 60  # Increased for GKE init time
+            command: ["pg_isready", "-U", "postgres", "-d", "/var/lib/postgresql/pgdata"]
+          initialDelaySeconds: 60
           periodSeconds: 20
           timeoutSeconds: 5
           failureThreshold: 5
         livenessProbe:
           exec:
-            command: ["pg_isready", "-U", "postgres"]
+            command: ["pg_isready", "-U", "postgres", "-d", "/var/lib/postgresql/pgdata"]
           initialDelaySeconds: 90
           periodSeconds: 30
           timeoutSeconds: 5
