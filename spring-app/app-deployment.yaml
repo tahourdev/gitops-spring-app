@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-api
+  namespace: default
+spec:
+  replicas: 1  # Scale as needed
+  selector:
+    matchLabels:
+      app: demo-api
+  template:
+    metadata:
+      labels:
+        app: demo-api
+    spec:
+      containers:
+        - name: demo-api
+          image: keanghor31/spring-app01:1.0.2  # This will be updated by Jenkins
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: app-secret
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30

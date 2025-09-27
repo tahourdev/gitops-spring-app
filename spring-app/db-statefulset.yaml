@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spring-app-db
+  namespace: default
+spec:
+  serviceName: spring-app-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-app-db
+  template:
+    metadata:
+      labels:
+        app: spring-app-db
+    spec:
+      containers:
+        - name: db
+          image: postgres:latest
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: db-secret
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
