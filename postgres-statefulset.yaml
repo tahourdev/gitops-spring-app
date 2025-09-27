@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spring-app-db
+  namespace: default  # Adjust namespace as needed
+spec:
+  serviceName: spring-app-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-app-db
+  template:
+    metadata:
+      labels:
+        app: spring-app-db
+    spec:
+      containers:
+      - name: db
+        image: postgres:latest
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_PASSWORD
+          value: "123"  # Use Secret in production
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_DB
+          value: "product"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 1Gi  # Adjust for GCP Persistent Disk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-app-db
+  namespace: default
+spec:
+  selector:
+    app: spring-app-db
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
