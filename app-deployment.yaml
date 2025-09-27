@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: demo-api
-        image: keaghor31/spring-app01:latest  # Updated by CI
+        image: keanghor31/spring-app01:latest  # Updated by CI
         ports:
         - containerPort: 8080
         env:
