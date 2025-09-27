@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: db
-        image: postgres:latest
+        image: postgres:16  # Pinned version for stability (latest was unstable)
         ports:
         - containerPort: 5432
         env:
@@ -29,13 +29,27 @@ spec:
         volumeMounts:
         - name: postgres-data
           mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"  # Added to ensure startup resources
         readinessProbe:
           exec:
             command: ["pg_isready", "-U", "postgres"]
-          initialDelaySeconds: 30
-          periodSeconds: 10
+          initialDelaySeconds: 60  # Increased for init time
+          periodSeconds: 20
           timeoutSeconds: 5
           failureThreshold: 5
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "postgres"]
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
   volumeClaimTemplates:
   - metadata:
       name: postgres-data
@@ -43,7 +57,8 @@ spec:
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:
-          storage: 1Gi  # Adjust for GCP Persistent Disk
+          storage: 1Gi  # Adjust as needed; use GCP Persistent Disk
+      storageClassName: standard  # Explicitly set for GKE
 ---
 apiVersion: v1
 kind: Service
