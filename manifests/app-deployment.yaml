@@ -4,7 +4,7 @@ metadata:
   name: demo-api
   namespace: default
 spec:
-  replicas: 2  # Best practice: Multiple replicas for high availability
+  replicas: 2
   selector:
     matchLabels:
       app: demo-api
@@ -18,9 +18,16 @@ spec:
       labels:
         app: demo-api
     spec:
+      initContainers:
+      - name: wait-for-db
+        image: bitnami/kubectl:latest
+        command:
+        - sh
+        - -c
+        - "until nslookup spring-app-db && nc -z spring-app-db 5432; do echo waiting for spring-app-db; sleep 2; done;"
       containers:
       - name: demo-api
-        image: keanghor31/spring-app01:latest  # Update with CI/CD tag
+        image: keanghor31/spring-app01:latest
         ports:
         - containerPort: 8080
         env:
@@ -36,18 +43,20 @@ spec:
             secretKeyRef:
               name: postgres-secret
               key: postgres-password
+        - name: MANAGEMENT_ENDPOINTS_WEB_EXPOSE=health,info  # Enable Actuator endpoints
+          value: "true"
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
             memory: "512Mi"
             cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
         readinessProbe:
           httpGet:
             path: /actuator/health
             port: 8080
-          initialDelaySeconds: 60
+          initialDelaySeconds: 90  # Increased due to init container
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 5
@@ -55,11 +64,11 @@ spec:
           httpGet:
             path: /actuator/health
             port: 8080
-          initialDelaySeconds: 90
+          initialDelaySeconds: 120  # Increased due to init container
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
----
+  ---
 apiVersion: v1
 kind: Service
 metadata:
